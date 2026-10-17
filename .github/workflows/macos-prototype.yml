@@ -20,8 +20,8 @@ jobs:
     env:
       VITE_API_URL: ${{ vars.MAC_PROTOTYPE_API_URL || 'https://backend.logyourtime.com/api' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -35,7 +35,7 @@ jobs:
         run: npm run smoke:mac
       - name: Package prototype without publishing
         run: npx --no-install electron-builder --mac --${{ matrix.arch }} --publish never
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: LogYourTime-mac-prototype-${{ matrix.arch }}
           path: |
