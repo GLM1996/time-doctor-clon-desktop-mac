@@ -3,7 +3,6 @@ export function settleWithTimeout(operation, timeoutMs, message = 'Tiempo de esp
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new Error(message)), safeTimeoutMs);
-    timer.unref?.();
   });
   return Promise.race([Promise.resolve(operation), timeout])
     .finally(() => clearTimeout(timer));
