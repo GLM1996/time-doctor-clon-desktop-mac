@@ -1,0 +1,45 @@
+name: Desktop macOS prototype
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    env:
+      VITE_API_URL: ${{ vars.MAC_PROTOTYPE_API_URL || 'https://backend.logyourtime.com/api' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install native dependencies on macOS
+        run: npm ci
+      - run: npm test
+      - name: Build isolated prototype
+        run: npm run build
+      - name: Test Electron startup, preload and native modules
+        run: npm run smoke:mac
+      - name: Package prototype without publishing
+        run: npx --no-install electron-builder --mac --${{ matrix.arch }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LogYourTime-mac-prototype-${{ matrix.arch }}
+          path: |
+            release-mac/*.dmg
+            release-mac/*.zip
+          if-no-files-found: error
+          retention-days: 14
