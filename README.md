@@ -54,9 +54,22 @@ Documentación: https://www.electronjs.org/docs/latest/api/system-preferences y 
 
 ## Descargas desde la web mediante Cloudflare R2
 
-El menú de usuario de la web ofrece Windows y las dos arquitecturas de Mac. Para publicar una versión de prueba, descarga y descomprime los artifacts y sube SOLO los DMG al bucket público de instaladores con estas claves fijas:
+El menú de usuario de la web ofrece Windows y las dos arquitecturas de Mac. Los dos workflows incluyen una subida directa desde GitHub a Cloudflare R2 después de completar ambas compilaciones. Se ejecuta únicamente al pulsar Actions → Desktop macOS prototype → Run workflow; los eventos push y pull_request solo compilan y conservan los artifacts.
+
+En el repositorio que uses, configura Settings → Secrets and variables → Actions con estos cuatro secretos:
+
+| Secreto | Valor |
+| --- | --- |
+| R2_ACCESS_KEY_ID | Access Key ID del token R2. |
+| R2_SECRET_ACCESS_KEY | Secret Access Key del token R2. |
+| R2_ENDPOINT | Endpoint S3 HTTPS completo indicado por Cloudflare para el bucket, incluida su jurisdicción si corresponde. |
+| R2_BUCKET | Nombre del bucket público de instaladores, sin URL ni rutas. |
+
+El token debe tener Object Read & Write limitado a ese bucket. No guardes sus valores en archivos ni uses el bucket privado de capturas. Si falta un secreto, la subida falla con un mensaje de configuración; los artifacts de compilación se conservan en GitHub.
+
+Cada ejecución manual guarda DMG y ZIP originales en mac/build-NUMERO-INTENTO/ y actualiza los DMG que consume la web con estas claves fijas:
 
 - mac/LogYourTime-arm64.dmg → Apple Silicon.
 - mac/LogYourTime-x64.dmg → Intel.
 
-Renombra cada copia del DMG antes de subirla. Los paquetes originales de GitHub mantienen su versión y arquitectura en el nombre. La web usa https://downloads.logyourtime.com/mac/LogYourTime-arm64.dmg y https://downloads.logyourtime.com/mac/LogYourTime-x64.dmg. En las versiones siguientes reemplaza esos objetos y comprueba la caché del dominio. Los enlaces devolverán 404 hasta subir los archivos. No uses el bucket privado de capturas para estos instaladores.
+La web usa https://downloads.logyourtime.com/mac/LogYourTime-arm64.dmg y https://downloads.logyourtime.com/mac/LogYourTime-x64.dmg. R2 debe tener ese dominio conectado al bucket para servir los enlaces. Los DMG fijos se suben con Cache-Control para revalidar; si el dominio ya tenía copias en caché o reglas que fuerzan caché, purga esas dos URLs tras la primera publicación. Los enlaces devolverán 404 hasta la primera subida correcta. La configuración no crea el bucket, el dominio ni las credenciales y no habilita actualizaciones automáticas dentro de la app.

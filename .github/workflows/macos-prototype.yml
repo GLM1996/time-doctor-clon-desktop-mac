@@ -43,3 +43,83 @@ jobs:
             release-mac/*.zip
           if-no-files-found: error
           retention-days: 14
+
+  upload-r2:
+    name: Upload Mac installers to Cloudflare R2
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - name: Check R2 configuration
+        shell: bash
+        run: |
+          for key in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ENDPOINT R2_BUCKET; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing R2 configuration: $key. Configure repository Actions secrets."
+              exit 1
+            fi
+          done
+          if [[ "$R2_ENDPOINT" != https://* ]]; then
+            echo "::error::R2_ENDPOINT must be the complete HTTPS S3 endpoint."
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: LogYourTime-mac-prototype-*
+          path: installers
+          merge-multiple: true
+
+      - name: Check both installers
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for arch in arm64 x64; do
+            files=(installers/*-"$arch".dmg)
+            if [ "${#files[@]}" -ne 1 ]; then
+              echo "::error::Expected exactly one DMG for $arch."
+              exit 1
+            fi
+            test -s "${files[0]}"
+          done
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install upload tool
+        run: |
+          python -m venv "$RUNNER_TEMP/r2-cli"
+          "$RUNNER_TEMP/r2-cli/bin/pip" install awscli
+
+      - name: Upload versioned files and update web downloads
+        shell: bash
+        run: |
+          aws_cli="$RUNNER_TEMP/r2-cli/bin/aws"
+          version_path="mac/build-${{ github.run_number }}-${{ github.run_attempt }}"
+          "$aws_cli" s3 cp installers/ "s3://$R2_BUCKET/$version_path/" \
+            --recursive --exclude "*" --include "*.dmg" --include "*.zip" \
+            --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          for arch in arm64 x64; do
+            files=(installers/*-"$arch".dmg)
+            "$aws_cli" s3 cp "${files[0]}" "s3://$R2_BUCKET/mac/LogYourTime-$arch.dmg" \
+              --content-type application/octet-stream \
+              --cache-control "no-cache, max-age=0, must-revalidate" \
+              --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          done
+          echo "### Mac installers uploaded to R2" >> "$GITHUB_STEP_SUMMARY"
+          echo "Archive: $version_path/" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Apple Silicon: mac/LogYourTime-arm64.dmg" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Intel: mac/LogYourTime-x64.dmg" >> "$GITHUB_STEP_SUMMARY"
