@@ -42,7 +42,7 @@
       "entitlements": "resources/entitlements.mac.plist",
       "entitlementsInherit": "resources/entitlements.mac.plist",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
-      "minimumSystemVersion": "15.0",
+      "minimumSystemVersion": "12.0",
       "extendInfo": {
         "NSAppleEventsUsageDescription": "LogYourTime consulta el dominio del navegador activo para registrar la actividad autorizada.",
         "NSScreenCaptureUsageDescription": "LogYourTime captura la pantalla durante una jornada autorizada."

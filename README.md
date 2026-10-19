@@ -11,7 +11,7 @@ La aplicación usa otro identificador y otra carpeta de datos. No reutiliza cred
 - Ventana activa y dominios mediante get-windows; la extensión Chromium sigue disponible. El colector PowerShell está desactivado.
 - Inicio automático en macOS opcional, desactivado inicialmente.
 - Actualizaciones y publicación desactivadas: los instaladores de prueba se descargan manualmente.
-- Paquetes separados arm64 (Apple Silicon) y x64 (Intel), objetivo inicial macOS 15 o posterior.
+- Paquetes separados arm64 (Apple Silicon) y x64 (Intel), con requisito mínimo macOS 12 (Monterey), incluido 12.7.6. La compatibilidad funcional debe verificarse en ese sistema.
 - Firma ad hoc de desarrollo, sin notarización ni certificado Developer ID. No es una distribución pública final.
 
 ## Construir sin tener una Mac
@@ -51,3 +51,12 @@ Autoriza la aplicación en Privacidad y seguridad → Grabación de pantalla y A
 Los runners validan compilación y arranque; no sustituyen estas pruebas interactivas, los permisos de privacidad ni una jornada real. No se ha afirmado compatibilidad real hasta ejecutarlas en macOS.
 
 Documentación: https://www.electronjs.org/docs/latest/api/system-preferences y https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+
+## Descargas desde la web mediante Cloudflare R2
+
+El menú de usuario de la web ofrece Windows y las dos arquitecturas de Mac. Para publicar una versión de prueba, descarga y descomprime los artifacts y sube SOLO los DMG al bucket público de instaladores con estas claves fijas:
+
+- mac/LogYourTime-arm64.dmg → Apple Silicon.
+- mac/LogYourTime-x64.dmg → Intel.
+
+Renombra cada copia del DMG antes de subirla. Los paquetes originales de GitHub mantienen su versión y arquitectura en el nombre. La web usa https://downloads.logyourtime.com/mac/LogYourTime-arm64.dmg y https://downloads.logyourtime.com/mac/LogYourTime-x64.dmg. En las versiones siguientes reemplaza esos objetos y comprueba la caché del dominio. Los enlaces devolverán 404 hasta subir los archivos. No uses el bucket privado de capturas para estos instaladores.
