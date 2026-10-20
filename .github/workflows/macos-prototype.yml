@@ -18,6 +18,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
       VITE_API_URL: ${{ vars.MAC_PROTOTYPE_API_URL || 'https://backend.logyourtime.com/api' }}
     steps:
       - uses: actions/checkout@v5
@@ -35,6 +36,8 @@ jobs:
         run: npm run smoke:mac
       - name: Package prototype without publishing
         run: npx --no-install electron-builder --mac --${{ matrix.arch }} --publish never
+      - name: Verify packaged macOS deployment requirements
+        run: node scripts/check-macos-compatibility.mjs
       - uses: actions/upload-artifact@v6
         with:
           name: LogYourTime-mac-prototype-${{ matrix.arch }}

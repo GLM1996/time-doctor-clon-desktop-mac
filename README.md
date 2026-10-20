@@ -24,6 +24,12 @@ La aplicación usa otro identificador y otra carpeta de datos. No reutiliza cred
 
 El workflow está preparado en disco. Debe subirse al repositorio y ejecutarse para obtener un instalador macOS; una compilación de JavaScript en Windows no lo sustituye.
 
+### Reintento en macOS 12.7.6 (versión 1.2.7)
+
+Los workflows fijan MACOSX_DEPLOYMENT_TARGET=12.0 para las compilaciones nativas y revisan los Info.plist y los requisitos Mach-O del paquete antes de guardar artifacts o subir a R2. Si alguna biblioteca exige una versión superior a 12.7.6, la ejecución falla mostrando el archivo responsable. Esta comprobación no sustituye una prueba real en Monterey.
+
+Sube estos cambios y ejecuta el workflow. Si pasa, descarga el DMG 1.2.7 de la arquitectura correcta (arm64 para Apple Silicon; x64 para Intel), reemplaza la aplicación anterior en Aplicaciones y prueba su apertura en la Mac con 12.7.6. Si falla la comprobación, revisa el archivo indicado antes de distribuir otro instalador. El requisito 15.0 del DMG anterior todavía no se ha podido inspeccionar directamente.
+
 ## Configurar el servidor
 
 Copia .env.example a .env y ajusta VITE_API_URL antes de compilar. Sin configuración se usa el backend actual https://backend.logyourtime.com/api. Para pruebas que creen sesiones usa una cuenta/organización de pruebas.
