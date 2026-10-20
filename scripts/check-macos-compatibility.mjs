@@ -34,7 +34,8 @@ async function inspect(folder) {
     try { await handle.read(bytes, 0, 4, 0); } finally { await handle.close(); }
     if (!magic.has(bytes.toString('hex'))) continue;
     binaries++;
-    const output = execFileSync('otool', ['-arch', 'all', '-l', file], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+    // -m disables archive(member) parsing: Electron helpers end in (GPU)/(Renderer).
+    const output = execFileSync('otool', ['-m', '-arch', 'all', '-l', file], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
     const versions = [...output.matchAll(/cmd LC_BUILD_VERSION\b[\s\S]*?\bminos\s+(\d+(?:\.\d+)*)|cmd LC_VERSION_MIN_MACOSX\b[\s\S]*?\bversion\s+(\d+(?:\.\d+)*)/g)].map(match => match[1] || match[2]);
     if (!versions.length) failures.push(`${file}: no macOS deployment target found`);
     for (const version of versions) if (newer(version)) failures.push(`${file}: binary requires macOS ${version}`);
