@@ -69,3 +69,4 @@ builder-debug.yml
 builder-effective-config.yaml
 
 release-mac/
+legacy-build/

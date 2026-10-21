@@ -3,7 +3,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 // Inspect the packaged files, not just the builder configuration or runner OS.
-const maximum = '12.7.6';
+const maximum = process.env.MAC_COMPATIBILITY_MAXIMUM || '12.7.6';
+if (!/^\d+(\.\d+){0,2}$/.test(maximum)) throw new Error('Invalid MAC_COMPATIBILITY_MAXIMUM');
 const newer = value => {
   const parts = value.split('.').map(Number);
   const limit = maximum.split('.').map(Number);

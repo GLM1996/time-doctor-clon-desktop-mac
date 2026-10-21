@@ -1,0 +1,47 @@
+name: Desktop macOS legacy experimental
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15-intel
+    timeout-minutes: 40
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '10.13'
+      MAC_COMPATIBILITY_MAXIMUM: '10.13'
+      VITE_API_URL: ${{ vars.MAC_PROTOTYPE_API_URL || 'https://backend.logyourtime.com/api' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Prepare isolated legacy project
+        run: node scripts/prepare-legacy-mac.mjs
+      - name: Resolve legacy dependencies and rebuild native modules
+        working-directory: legacy-build
+        run: npm install
+      - name: Test shared application logic
+        working-directory: legacy-build
+        run: npm test
+      - name: Build legacy CommonJS main process
+        working-directory: legacy-build
+        run: npm run build
+      - name: Check Electron startup, preload and database
+        working-directory: legacy-build
+        run: npm run smoke:mac
+      - name: Package Intel installer
+        working-directory: legacy-build
+        run: npx --no-install electron-builder --mac --x64 --publish never
+      - name: Reject binaries requiring newer macOS
+        working-directory: legacy-build
+        run: node scripts/check-macos-compatibility.mjs
+      - uses: actions/upload-artifact@v6
+        with:
+          name: LogYourTime-mac-legacy-experimental-x64
+          path: |
+            legacy-build/release-mac/*.dmg
+            legacy-build/release-mac/*.zip
+            legacy-build/package-lock.json
+          if-no-files-found: error
+          retention-days: 14

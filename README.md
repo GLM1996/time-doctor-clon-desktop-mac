@@ -16,6 +16,20 @@ La aplicación usa otro identificador y otra carpeta de datos. No reutiliza cred
 
 ## Construir sin tener una Mac
 
+### Instalador experimental para High Sierra y Catalina
+
+El workflow manual `Desktop macOS legacy experimental` prepara un proyecto aislado en `legacy-build`, para Intel x64 y con objetivo macOS 10.13. Se comparte el código de la app, pero se fijan Electron 26.6.10, electron-store 8.2.0, better-sqlite3 9.4.3 y active-win 7.7.2. El proceso principal se compila a CommonJS para Electron 26. Los datos se guardan en una carpeta propia de la edición experimental.
+
+En el monorepositorio usa `.github/workflows/desktop-mac-legacy.yml`; si subes solo desktop-mac, usa su `.github/workflows/macos-legacy.yml`. Ejecuta Actions → Desktop macOS legacy experimental → Run workflow. Solo entrega artifacts; no sustituye las descargas públicas. El lockfile resuelto se incluye en el artifact para auditar la compilación.
+
+La comprobación del paquete rechaza cualquier Info.plist o binario Mach-O que exija más de macOS 10.13. Un fallo puede revelar dependencias nativas o herramientas de compilación que necesitan ajustes adicionales. Pasar esa comprobación y arrancar en el runner moderno no demuestra funcionamiento en High Sierra o Catalina: prueba instalación, permisos, ventana activa, dominios, capturas, jornada, almacenamiento y sincronización en ambas versiones antes de distribuirlo.
+
+High Sierra puede necesitar las bibliotecas de soporte de Swift de Apple para active-win: https://support.apple.com/kb/DL1998. Electron 26 ya no recibe actualizaciones de seguridad. Esta edición es experimental; su compatibilidad real todavía no está verificada.
+
+Validación local realizada en Windows: generación del proyecto aislado, compilación de los tres procesos con las herramientas ya instaladas y 166 pruebas de lógica correctas. La instalación completa de dependencias legacy, el arranque con Electron 26 y la generación e inspección del DMG quedan pendientes del workflow en macOS.
+
+Referencias: https://www.electronjs.org/docs/latest/breaking-changes y https://github.com/sindresorhus/active-win/tree/v7.7.2
+
 1. Puedes subir el CONTENIDO de desktop-mac como un repositorio independiente: incluye su propio .github/workflows/macos-prototype.yml. Si utilizas un monorepositorio, sube desktop-mac y el workflow de la raíz .github/workflows/desktop-mac-prototype.yml conservando las rutas. No habilites las dos alternativas a la vez. Esta carpeta no contiene un repositorio Git anidado.
 2. En GitHub, abre Actions → Desktop macOS prototype → Run workflow. También se ejecuta al subir cambios de estas rutas.
 3. Cada arquitectura instala sus dependencias en un runner macOS, ejecuta pruebas, compila y verifica el arranque de Electron y el puente preload.
