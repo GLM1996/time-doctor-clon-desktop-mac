@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../src/main/index.js', import.meta.url),'utf8')
   .replace(/^import[\s\S]*?;[^\n]*\n/gm,'')
+  .replaceAll('import.meta.env.VITE_MAC_TEST_BUILD', JSON.stringify('true'))
   .replace('  const createWindow = () =>','  globalThis.requestQuitForTest = requestQuit;\n  const createWindow = () =>');
 test('exit proceeds immediately through failing saves and cleanup without waiting for a server', async () => {
   const handlers = new Map(), calls = [];
