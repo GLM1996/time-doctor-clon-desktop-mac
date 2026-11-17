@@ -75,3 +75,19 @@ Salir desde el menú de la aplicación o Cmd+Q termina el proceso.
 La compilación de JavaScript y las pruebas en Windows no sustituyen esta prueba
 nativa. RELEASE_WINDOWS.md y el verificador Windows se conservan como referencia;
 los comandos de publicación de esta carpeta usan exclusivamente el flujo Mac.
+
+## Pruebas sin certificado Apple
+
+En GitHub abre Actions > Generar instalador macOS de pruebas > Run workflow,
+selecciona main y confirma Run workflow. No requiere tags ni secretos Apple.
+Utiliza los cuatro secretos R2 ya configurados. Genera DMG y ZIP para ambas
+arquitecturas con firma ad hoc local, sin certificado Developer ID ni notarización.
+Las actualizaciones automáticas quedan desactivadas en esta compilación.
+
+Descarga el artifact LogYourTime-macOS-pruebas del workflow o usa:
+- https://downloads.logyourtime.com/mac/testing/LogYourTime-arm64.dmg
+- https://downloads.logyourtime.com/mac/testing/LogYourTime-x64.dmg
+
+Los enlaces existen después de completar el job upload-r2. macOS puede bloquear
+la apertura: después de intentar abrir la app, usa Ajustes del Sistema > Privacidad
+y seguridad > Abrir igualmente, si macOS ofrece esa opción.

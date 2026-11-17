@@ -120,7 +120,7 @@ if (!gotTheLock) {
 
     // 👇 Auto-update: solo en producción
     captureRealtimeService.start();
-    if (app.isPackaged) {
+    if (app.isPackaged && import.meta.env.VITE_MAC_TEST_BUILD !== 'true') {
       autoUpdateService.setBeforeInstallHandler(async () => {
         if (timerService.getStatus().isRunning) {
           try {
