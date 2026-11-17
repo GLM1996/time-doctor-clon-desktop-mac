@@ -87,7 +87,7 @@ function registerAppHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.APP_GET_STARTUP_SETTING, () => ({
     enabled: appPreferenceStore.getStartWithWindows(),
-    supported: process.platform === 'win32' && app.isPackaged,
+    supported: ['win32', 'darwin'].includes(process.platform) && app.isPackaged,
   }));
 
   ipcMain.handle(IPC_CHANNELS.APP_SET_STARTUP_SETTING, (_event, payload = {}) => {

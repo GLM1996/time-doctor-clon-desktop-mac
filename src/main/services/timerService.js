@@ -1,5 +1,5 @@
 import { describeSessionSyncError } from './sessionSyncErrors.js';
-import { SessionEventJournal } from './sessionEventJournal.js';
+import { openSessionJournal } from './sessionJournalRecovery.js';
 import { authStore } from './store.js';
 import logger from '../utils/logger.js';
 import apiClient from './apiClient.js';
@@ -70,6 +70,7 @@ class TimerService {
     this.syncState = 'idle';
     this.lastSyncAt = null;
     this.lastSyncError = null;
+    this.journalRecoveryWarning = null;
     this.statusListeners = new Set();
     this.pendingSessionsPath = path.join(
       app.getPath('userData'),
@@ -89,11 +90,14 @@ class TimerService {
     if (this.sessionJournal) return true;
     try {
       const journalPath = path.join(app.getPath('userData'), 'session-events.json');
-      const journal = new SessionEventJournal({
-        read: () => secureLocalStorage.readJson(journalPath, []),
-        write: records => secureLocalStorage.writeJson(journalPath, records),
+      const journal = openSessionJournal({
+        filePath: journalPath,
+        storage: secureLocalStorage,
+        onRecovery: recoveryPath => {
+          this.journalRecoveryWarning = 'El registro local estaba dañado. Puedes iniciar nuevas sesiones. Se conservó una copia para revisar el tiempo pendiente de sincronizar: ' + path.basename(recoveryPath);
+          logger.warn(this.journalRecoveryWarning);
+        },
       });
-      if (journal.records.length) journal.recover();
       this.sessionJournal = journal;
       return true;
     } catch (error) {
@@ -1180,7 +1184,8 @@ class TimerService {
       pendingScreenshots,
       pendingTotal: this.pendingSessions.length + eventCount + pendingActivity + pendingScreenshots,
       lastSyncAt: this.lastSyncAt,
-      lastError: this.lastSyncError
+      lastError: this.lastSyncError,
+      recoveryWarning: this.journalRecoveryWarning || null,
     };
   }
 

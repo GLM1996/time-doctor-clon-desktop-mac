@@ -1,3 +1,4 @@
+import { hasMacAccessibilityPermission, macActiveWindowOptions } from './macPermissionsService.js';
 import { activeWindow } from 'get-windows';
 import { performance } from 'node:perf_hooks';
 import { isDomainExcluded, normalizeActiveDomain } from './activeDomain.js';
@@ -436,7 +437,13 @@ class ActivityService {
     }
 
     try {
-      const windowInfo = await activeWindow();
+      if (!hasMacAccessibilityPermission()) {
+        this.currentActiveWindow = null;
+        this.currentActiveApp = null;
+        this.currentActiveDomain = null;
+        return;
+      }
+      const windowInfo = await activeWindow(macActiveWindowOptions());
 
       if (!windowInfo) {
         this.currentActiveWindow = null;

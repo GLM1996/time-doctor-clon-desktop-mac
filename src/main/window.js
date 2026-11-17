@@ -30,7 +30,6 @@ let mainWindow = null;
 export function createMainWindow({
   shouldQuit = () => false,
   onCloseToTray = () => {},
-  onCloseRequest = null,
 } = {}) {
   const isDev = !app.isPackaged;
   const windowCreatedAt = performance.now();
@@ -225,13 +224,11 @@ export function createMainWindow({
   );
 
   /*
-   * El botón X cerrará normalmente la ventana.
-   *
-   * No hace falta interceptar "close" cuando
-   * quieres que la aplicación se cierre.
+   * La X y minimizar ocultan la ventana sin detener el seguimiento.
+   * El cierre real se solicita desde Salir o al instalar una actualización.
    */
   mainWindow.on('minimize', (event) => {
-    if (shouldQuit()) return;
+    if (shouldQuit() || process.platform === 'darwin') return;
 
     event.preventDefault();
     mainWindow.hide();
@@ -244,12 +241,6 @@ export function createMainWindow({
 
   mainWindow.on('close', (event) => {
     if (shouldQuit()) return;
-    if (onCloseRequest) {
-      event.preventDefault();
-      void onCloseRequest();
-      return;
-    }
-
     event.preventDefault();
     mainWindow.hide();
     onCloseToTray();
@@ -280,4 +271,3 @@ export function getMainWindow() {
 
   return mainWindow;
 }
-

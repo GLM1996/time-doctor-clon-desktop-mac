@@ -1,3 +1,4 @@
+import { assertMacScreenPermission } from './macPermissionsService.js';
 import { desktopCapturer, app, nativeImage, screen } from 'electron';
 import logger from '../utils/logger.js';
 import apiClient from './apiClient.js';
@@ -203,6 +204,7 @@ class ScreenshotService {
 
   async _captureScreen() {
     try {
+      assertMacScreenPermission();
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: { width: this.maxWidth, height: this.maxHeight }

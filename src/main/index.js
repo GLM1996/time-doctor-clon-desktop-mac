@@ -1,4 +1,5 @@
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, session, Menu } from 'electron';
+import { explainMacPermissions } from './services/macPermissionsService.js';
 import { createMainWindow } from './window.js';
 import { showAuthExpiredWindow } from './authExpiredWindow.js';
 import { registerIpcHandlers } from './ipc/handlers.js';
@@ -58,7 +59,6 @@ if (!gotTheLock) {
   const createWindow = () =>
     createMainWindow({
       shouldQuit: () => isQuitting,
-      onCloseRequest: requestQuit,
       onCloseToTray: () => trayService.notifyCloseToTray(),
     });
 
@@ -84,6 +84,12 @@ if (!gotTheLock) {
           },
         });
       });
+    }
+
+    if (process.platform === 'darwin') {
+      Menu.setApplicationMenu(Menu.buildFromTemplate([
+        { role: 'appMenu' }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
+      ]));
     }
 
     logger.info('🚀 Electron listo');
@@ -139,6 +145,11 @@ if (!gotTheLock) {
 
     // Crear ventana principal
     mainWindow = createWindow();
+    if (process.platform === 'darwin') {
+      mainWindow.once('ready-to-show', () => {
+        explainMacPermissions(mainWindow).catch(error => logger.warn(error.message));
+      });
+    }
     if (app.isPackaged) autoUpdateService.beginStartupHealthCheck();
     trayService.initialize({
       getMainWindow: () => mainWindow,

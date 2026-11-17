@@ -288,7 +288,7 @@ function getFriendlyUpdateError(error) {
   );
 
   if (
-    message.includes('latest.yml') ||
+    /latest(?:-mac)?\.yml/.test(message) ||
     message.includes('Cannot find latest')
   ) {
     return 'La actualización publicada está incompleta. Inténtalo nuevamente más tarde.';

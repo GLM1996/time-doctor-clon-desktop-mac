@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { SessionEventJournal } from '../src/main/services/sessionEventJournal.js';
+import { openSessionJournal } from '../src/main/services/sessionJournalRecovery.js';
 import { TrustedClock } from '../src/main/services/trustedClock.js';
 import { buildDeviceInfo, buildWorkSelection, createOfflineSession, normalizeStopInput } from '../src/main/services/sessionPayloads.js';
 import { calculateElapsedSeconds, formatDuration } from '../src/main/services/timerServiceUtils.js';
@@ -19,7 +20,7 @@ function setup() {
   const clock = new TrustedClock(() => tick); clock.synchronize('2026-11-11T12:00:00Z');
   const events = [];
   const context = vm.createContext({
-    buildDeviceInfo, buildWorkSelection, createOfflineSession, normalizeStopInput, calculateElapsedSeconds, formatDuration, buildOfflineSessionPayload, describeSessionSyncError, buildTimerUpdate,
+    buildDeviceInfo, buildWorkSelection, createOfflineSession, normalizeStopInput, calculateElapsedSeconds, formatDuration, buildOfflineSessionPayload, describeSessionSyncError, buildTimerUpdate, openSessionJournal,
     trustedClock: clock, process: { platform: 'win32' }, app: { getVersion: () => '1.3.1' },
     authStore: { getUser: () => ({ _id: 'user', organization: 'org' }) },
     configService: { getConfig: () => ({}), setTrackingActive() {}, startSync() {}, stopSync() {} },

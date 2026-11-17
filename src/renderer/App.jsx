@@ -751,8 +751,8 @@ function PreferencesView() {
       setEnabled(result?.enabled ?? nextValue);
       setSupported(result?.supported !== false);
       setMessage(nextValue
-        ? "LogYourTime se iniciará automáticamente con Windows."
-        : "LogYourTime ya no se iniciará automáticamente con Windows.");
+        ? "LogYourTime se iniciará automáticamente con macOS."
+        : "LogYourTime ya no se iniciará automáticamente con macOS.");
     } catch (error) {
       setMessage(getRendererErrorMessage(error, "No se pudo guardar la preferencia."));
     } finally {
@@ -778,15 +778,15 @@ function PreferencesView() {
         <div className="space-y-4 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-5 rounded-2xl border border-[#ded9cd] bg-white px-4 py-4">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#3f423b]">Iniciar con Windows</p>
-              <p className="mt-1 max-w-md text-xs leading-5 text-[#777970]">Abre LogYourTime automáticamente cuando inicies sesión en Windows. Esta opción está activada por defecto.</p>
-              {!supported && !loading && <p className="mt-2 text-[10px] font-medium text-[#986126]">El cambio se aplicará cuando uses la versión instalada en Windows.</p>}
+              <p className="text-sm font-semibold text-[#3f423b]">Iniciar con macOS</p>
+              <p className="mt-1 max-w-md text-xs leading-5 text-[#777970]">Abre LogYourTime automáticamente cuando inicies sesión en macOS. Esta opción está activada por defecto.</p>
+              {!supported && !loading && <p className="mt-2 text-[10px] font-medium text-[#986126]">El cambio se aplicará cuando uses la versión instalada en macOS.</p>}
             </div>
             <button
               type="button"
               role="switch"
               aria-checked={enabled}
-              aria-label="Iniciar LogYourTime con Windows"
+              aria-label="Iniciar LogYourTime con macOS"
               onClick={changeStartup}
               disabled={loading || saving}
               className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full border transition-colors focus:outline-none focus:ring-4 focus:ring-[#94602a]/15 disabled:cursor-wait disabled:opacity-60 ${enabled ? "border-[#617258] bg-[#6f8064]" : "border-[#aaa9a2] bg-[#b8b7b0]"}`}

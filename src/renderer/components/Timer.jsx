@@ -88,6 +88,7 @@ function Timer() {
   const {
     elapsedSeconds,
     error,
+    recoveryWarning,
     isLoading,
     isRunning,
     lastResult,
@@ -183,6 +184,7 @@ function Timer() {
           } : null}
         />
         <TimerErrorNotice apiAvailable={apiAvailable} message={error} />
+        <TimerErrorNotice apiAvailable={apiAvailable} message={recoveryWarning} />
         <SessionResultNotice isRunning={isRunning} result={lastResult} />
         <WorkSelection
           isRunning={isRunning}

@@ -1,4 +1,4 @@
-name: Publicar aplicaciÃ³n Windows
+name: Publicar aplicación macOS
 
 on:
   push:
@@ -6,38 +6,99 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-macos
+  cancel-in-progress: false
 
 jobs:
-  release-windows:
-    runs-on: windows-latest
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      VITE_API_URL: ${{ vars.MAC_PROTOTYPE_API_URL || 'https://backend.logyourtime.com/api' }}
+      CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
+      CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Validar certificado de firma
-        shell: pwsh
+      - name: Validar versión y credenciales Apple
+        shell: bash
         run: |
-          if (-not $env:CSC_LINK -or -not $env:CSC_KEY_PASSWORD) {
-            throw 'Configura WINDOWS_CERTIFICATE_BASE64 y WINDOWS_CERTIFICATE_PASSWORD antes de publicar.'
-          }
+          set -euo pipefail
+          for key in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            test -n "${!key}" || { echo "Falta el secreto $key"; exit 1; }
+          done
+          VERSION=$(node -p 'require("./package.json").version')
+          test "$GITHUB_REF" = "refs/tags/v$VERSION" || { echo "Ejecuta este workflow sobre el tag v$VERSION"; exit 1; }
       - run: npm ci
       - run: npm test
-      - run: npm run build
-      - name: Construir, firmar y publicar artefactos
-        run: npx electron-builder --win --publish always
+      - run: npm run dist:mac
       - run: npm run release:verify
+      - name: Comprobar firma y notarización
+        shell: bash
+        run: |
+          set -euo pipefail
+          for arch in mac mac-arm64; do
+            codesign --verify --deep --strict --verbose=2 "release/$arch/LogYourTime.app"
+            spctl --assess --type execute --verbose=2 "release/$arch/LogYourTime.app"
+            xcrun stapler validate "release/$arch/LogYourTime.app"
+          done
       - uses: actions/upload-artifact@v4
         with:
-          name: LogYourTime-Windows-${{ github.ref_name }}
-          path: |
-            release/latest.yml
-            release/*.exe
-            release/*.blockmap
+          name: LogYourTime-macOS
           if-no-files-found: error
+          path: |
+            release/latest-mac.yml
+            release/*.dmg
+            release/*.zip
+            release/*.blockmap
+
+  publish-r2:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: LogYourTime-macOS
+          path: release
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar cliente R2
+        run: |
+          python -m venv "$RUNNER_TEMP/r2-cli"
+          "$RUNNER_TEMP/r2-cli/bin/pip" install awscli
+          echo "$RUNNER_TEMP/r2-cli/bin" >> "$GITHUB_PATH"
+      - name: Publicar instaladores y después el manifiesto
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ENDPOINT R2_BUCKET; do
+            test -n "${!key}" || { echo "Falta configuración: $key"; exit 1; }
+          done
+          [[ "$R2_ENDPOINT" == https://* ]] || { echo "R2_ENDPOINT debe usar HTTPS"; exit 1; }
+          ENDPOINT="$R2_ENDPOINT"
+          DEST="s3://${R2_BUCKET}/mac/"
+          aws s3 cp release/ "$DEST" --recursive --exclude '*' --include '*.dmg' --include '*.zip' --include '*.blockmap' --endpoint-url "$ENDPOINT" --cache-control 'public,max-age=31536000,immutable' --only-show-errors
+          VERSION=$(find release -maxdepth 1 -name "LogYourTime-*-arm64.dmg" -exec basename {} \; | sed -E "s/^LogYourTime-(.*)-arm64\.dmg$/\1/")
+          test -n "$VERSION"
+          for arch in arm64 x64; do
+            aws s3 cp "release/LogYourTime-${VERSION}-${arch}.dmg" "${DEST}LogYourTime-${arch}.dmg" --endpoint-url "$ENDPOINT" --content-type application/octet-stream --cache-control "no-cache,max-age=0,must-revalidate" --only-show-errors
+          done
+          aws s3 cp release/latest-mac.yml "${DEST}latest-mac.yml" --endpoint-url "$ENDPOINT" --content-type 'text/yaml' --cache-control 'no-store' --only-show-errors

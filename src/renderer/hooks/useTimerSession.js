@@ -25,6 +25,7 @@ export default function useTimerSession({
   const [isLoading, setIsLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
   const [error, setError] = useState("");
+  const [recoveryWarning, setRecoveryWarning] = useState("");
   const [lastResult, setLastResult] = useState(null);
   const sessionClosingRef = useRef(false);
   const activeSessionRef = useRef(null);
@@ -59,6 +60,7 @@ export default function useTimerSession({
 
         activeSessionRef.current = status?.trackingId || status?.sessionId || null;
         setIsRunning(Boolean(status?.isRunning));
+        setRecoveryWarning(status?.sync?.recoveryWarning || "");
         setObservedElapsed(status?.elapsedSeconds);
         await loadTodayTotal();
       } catch (loadError) {
@@ -81,6 +83,13 @@ export default function useTimerSession({
       active = false;
     };
   }, [apiAvailable, electronAPI, loadTodayTotal, setObservedElapsed]);
+
+  useEffect(() => {
+    if (!apiAvailable || !electronAPI.events.onSyncUpdate) return undefined;
+    return electronAPI.events.onSyncUpdate((status = {}) => {
+      if (mountedRef.current) setRecoveryWarning(status.recoveryWarning || "");
+    });
+  }, [apiAvailable, electronAPI, mountedRef]);
 
   useEffect(() => {
     if (!apiAvailable) return undefined;
@@ -247,6 +256,7 @@ export default function useTimerSession({
   return {
     elapsedSeconds,
     error,
+    recoveryWarning,
     isLoading,
     isRunning,
     lastResult,
